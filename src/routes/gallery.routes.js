@@ -42,4 +42,14 @@ router.post('/upload', requireAuth, requireAdmin, cloudUpload.single('media'), a
 	}
 });
 
+// Add this route to return all gallery items
+router.get('/', async (_req, res) => {
+	try {
+		const items = await GalleryItem.find().sort({ createdAt: -1 });
+		res.json(items);
+	} catch (error) {
+		res.status(500).json({ error: 'Failed to fetch gallery items' });
+	}
+});
+
 export default router;
