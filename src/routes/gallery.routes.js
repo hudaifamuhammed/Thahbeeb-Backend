@@ -4,6 +4,15 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
+import { v2 as cloudinary } from 'cloudinary';
+import dotenv from 'dotenv';
+dotenv.config({ path: process.cwd() + '/.env.cloudinary' });
+
+cloudinary.config({
+	cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+	api_key: process.env.CLOUDINARY_API_KEY,
+	api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 import GalleryItem from '../models/GalleryItem.js';
 
 const router = Router();
@@ -22,6 +31,9 @@ const storage = multer.diskStorage({
 });
 
 const upload = multer({ storage });
+// Multer memory storage for direct upload to Cloudinary
+const memoryStorage = multer.memoryStorage();
+const cloudUpload = multer({ storage: memoryStorage });
 
 router.get('/', async (_req, res) => {
 	const list = await GalleryItem.find().sort({ createdAt: -1 });
@@ -29,18 +41,29 @@ router.get('/', async (_req, res) => {
 });
 
 router.post('/', requireAuth, requireAdmin, upload.single('file'), async (req, res) => {
-	const file = req.file;
-	const { caption, type, category } = req.body;
-	if (!file) return res.status(400).json({ error: 'File is required' });
-	const doc = await GalleryItem.create({
-		caption,
-		type,
-		category,
-		url: `/uploads/${file.filename}`,
-		fileName: file.originalname,
-		fileSize: file.size,
+	router.post('/', requireAuth, requireAdmin, cloudUpload.single('file'), async (req, res) => {
+		const file = req.file;
+		const { caption, type, category } = req.body;
+		if (!file) return res.status(400).json({ error: 'File is required' });
+		try {
+			// Upload to Cloudinary
+			const result = await cloudinary.uploader.upload_stream({ resource_type: 'auto' }, async (error, result) => {
+				if (error || !result) return res.status(500).json({ error: 'Cloudinary upload failed' });
+				const doc = await GalleryItem.create({
+					caption,
+					type,
+					category,
+					url: result.secure_url,
+					fileName: file.originalname,
+					fileSize: file.size,
+				});
+				res.status(201).json(doc);
+			});
+			result.end(file.buffer);
+		} catch (err) {
+			res.status(500).json({ error: 'Upload error' });
+		}
 	});
-	res.status(201).json(doc);
 });
 
 router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
