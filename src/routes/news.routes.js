@@ -40,11 +40,11 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 });
 
 // Upload image for news article
-router.post('/:id/upload-image', requireAuth, requireAdmin, upload.single('image'), async (req, res) => {
+router.post('/:id/upload-image', requireAuth, requireAdmin, cloudUpload.single('image'), async (req, res) => {
   if (!req.file) return res.status(400).json({ error: 'Image file is required' });
   try {
-    // Upload to Cloudinary
-    const result = await cloudinary.uploader.upload_stream({ resource_type: 'image' }, async (error, result) => {
+    // Upload to Cloudinary using stream
+    const stream = cloudinary.uploader.upload_stream({ resource_type: 'image' }, async (error, result) => {
       if (error || !result) return res.status(500).json({ error: 'Cloudinary upload failed' });
       const news = await News.findByIdAndUpdate(
         req.params.id,
@@ -54,7 +54,7 @@ router.post('/:id/upload-image', requireAuth, requireAdmin, upload.single('image
       if (!news) return res.status(404).json({ error: 'News article not found' });
       res.json(news);
     });
-    result.end(req.file.buffer);
+    stream.end(req.file.buffer);
   } catch (error) {
     console.error('Error uploading image:', error);
     res.status(500).json({ error: 'Failed to upload image' });
