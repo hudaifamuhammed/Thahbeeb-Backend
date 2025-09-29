@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import mongoose from 'mongoose';
 import Score from '../models/Score.js';
 import Team from '../models/Team.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
@@ -30,10 +31,15 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
         return raw;
     };
 
-    const positions = Array.isArray(req.body.positions) ? req.body.positions.map(p => ({
-        ...p,
-        points: Number(p.points) || 0
-    })) : [];
+    const rawPositions = Array.isArray(req.body.positions) ? req.body.positions : [];
+    const positions = rawPositions
+        .filter(p => p && p.teamId && mongoose.Types.ObjectId.isValid(p.teamId))
+        .map(p => ({
+            teamId: p.teamId,
+            participantName: p.participantName,
+            position: Number(p.position) || 0,
+            points: Number(p.points) || 0
+        }));
 
     const totalPoints = positions.reduce((sum, pos) => sum + (Number(pos.points) || 0), 0);
 
@@ -63,10 +69,15 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
         return raw;
     };
 
-    const positions = Array.isArray(req.body.positions) ? req.body.positions.map(p => ({
-        ...p,
-        points: Number(p.points) || 0
-    })) : [];
+    const rawPositions = Array.isArray(req.body.positions) ? req.body.positions : [];
+    const positions = rawPositions
+        .filter(p => p && p.teamId && mongoose.Types.ObjectId.isValid(p.teamId))
+        .map(p => ({
+            teamId: p.teamId,
+            participantName: p.participantName,
+            position: Number(p.position) || 0,
+            points: Number(p.points) || 0
+        }));
     const totalPoints = positions.reduce((sum, pos) => sum + (Number(pos.points) || 0), 0);
 
     const update = {
