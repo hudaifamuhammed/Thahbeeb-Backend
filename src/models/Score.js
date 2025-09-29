@@ -12,6 +12,7 @@ const scoreSchema = new mongoose.Schema({
 		points: { type: Number, default: 0 }
 	}],
 	totalPoints: { type: Number, default: 0 },
+	published: { type: Boolean, default: false },
 	remarks: String,
 }, { timestamps: true });
 

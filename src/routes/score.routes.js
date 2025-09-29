@@ -6,11 +6,16 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 const router = Router();
 
 router.get('/', async (req, res) => {
-    const { category } = req.query;
+    const { category, published } = req.query;
     const filter = {};
     if (category && category !== 'All') filter.category = category;
+    if (typeof published !== 'undefined') {
+        // Accept 'true'/'false' or boolean
+        const publishedBool = published === true || published === 'true';
+        filter.published = publishedBool;
+    }
     const list = await Score.find(filter).sort({ createdAt: -1 });
-	res.json(list);
+    res.json(list);
 });
 
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
@@ -35,6 +40,21 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
 		totalPoints
 	}, { new: true });
 	res.json(doc);
+});
+
+// Bulk publish/unpublish scores (e.g., publish all current draft scores)
+router.post('/publish', requireAuth, requireAdmin, async (req, res) => {
+    const { scoreIds, published } = req.body || {};
+    const setPublished = typeof published === 'boolean' ? published : true;
+
+    let result;
+    if (Array.isArray(scoreIds) && scoreIds.length > 0) {
+        result = await Score.updateMany({ _id: { $in: scoreIds } }, { $set: { published: setPublished } });
+    } else {
+        // If no IDs supplied, publish all scores that are currently not in desired state
+        result = await Score.updateMany({ published: { $ne: setPublished } }, { $set: { published: setPublished } });
+    }
+    res.json({ ok: true, matched: result.matchedCount ?? result.nMatched, modified: result.modifiedCount ?? result.nModified, published: setPublished });
 });
 
 router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
