@@ -105,10 +105,10 @@ router.post('/upload', requireAuth, requireAdmin, upload.single('file'), async (
 				}
 			});
 
-            // Validate Category
-            if (row['Category'] && !['Super-Senior', 'Senior', 'Junior'].includes(row['Category'])) {
-                errors.push(`Row ${index + 2}: Invalid category. Must be Super-Senior, Senior, or Junior`);
-            }
+		// Validate Category (allow any non-empty string from Excel)
+		if (!row['Category'] || String(row['Category']).trim() === '') {
+			errors.push(`Row ${index + 2}: Missing category`);
+		}
 
 			// Validate Type
 			if (row['Type'] && !['solo', 'group', 'Single', 'Group'].includes(row['Type'])) {
@@ -155,7 +155,7 @@ router.post('/upload', requireAuth, requireAdmin, upload.single('file'), async (
 
 			return {
 				name: row['Competition Name'],
-				category: row['Category'].toLowerCase().replace('-', '-'),
+				category: String(row['Category']).trim(),
 				type: typeValue,
 				stage: row['Stage Type'], // Using Stage Type as stage field
 				stageType: row['Stage Type'],
