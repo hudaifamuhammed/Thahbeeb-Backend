@@ -19,27 +19,69 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
-	// Calculate total points from positions
-	const totalPoints = req.body.positions ? 
-		req.body.positions.reduce((sum, pos) => sum + (pos.points || 0), 0) : 0;
-	
-	const doc = await Score.create({
-		...req.body,
-		totalPoints
-	});
-	res.status(201).json(doc);
+    // Normalize category and ensure numeric points
+    const normalizeCategory = (raw) => {
+        const v = (raw || '').toString().trim().toLowerCase();
+        if (!v) return '';
+        if (v.includes('super') && v.includes('senior')) return 'Super-Senior';
+        if (v.includes('general')) return 'General';
+        if (v.includes('senior')) return 'Senior';
+        if (v.includes('junior')) return 'Junior';
+        return raw;
+    };
+
+    const positions = Array.isArray(req.body.positions) ? req.body.positions.map(p => ({
+        ...p,
+        points: Number(p.points) || 0
+    })) : [];
+
+    const totalPoints = positions.reduce((sum, pos) => sum + (Number(pos.points) || 0), 0);
+
+    const payload = {
+        ...req.body,
+        positions,
+        totalPoints
+    };
+    if (!payload.isGroupEvent) {
+        payload.category = normalizeCategory(payload.category);
+    } else {
+        payload.category = undefined;
+    }
+
+    const doc = await Score.create(payload);
+    res.status(201).json(doc);
 });
 
 router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
-	// Calculate total points from positions
-	const totalPoints = req.body.positions ? 
-		req.body.positions.reduce((sum, pos) => sum + (pos.points || 0), 0) : 0;
-	
-	const doc = await Score.findByIdAndUpdate(req.params.id, {
-		...req.body,
-		totalPoints
-	}, { new: true });
-	res.json(doc);
+    const normalizeCategory = (raw) => {
+        const v = (raw || '').toString().trim().toLowerCase();
+        if (!v) return '';
+        if (v.includes('super') && v.includes('senior')) return 'Super-Senior';
+        if (v.includes('general')) return 'General';
+        if (v.includes('senior')) return 'Senior';
+        if (v.includes('junior')) return 'Junior';
+        return raw;
+    };
+
+    const positions = Array.isArray(req.body.positions) ? req.body.positions.map(p => ({
+        ...p,
+        points: Number(p.points) || 0
+    })) : [];
+    const totalPoints = positions.reduce((sum, pos) => sum + (Number(pos.points) || 0), 0);
+
+    const update = {
+        ...req.body,
+        positions,
+        totalPoints
+    };
+    if (!update.isGroupEvent) {
+        update.category = normalizeCategory(update.category);
+    } else {
+        update.category = undefined;
+    }
+
+    const doc = await Score.findByIdAndUpdate(req.params.id, update, { new: true });
+    res.json(doc);
 });
 
 // Bulk publish/unpublish scores (e.g., publish all current draft scores)
