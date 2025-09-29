@@ -105,10 +105,10 @@ router.post('/upload', requireAuth, requireAdmin, upload.single('file'), async (
 				}
 			});
 
-			// Validate Category
-			if (row['Category'] && !['Sub-Junior', 'Junior', 'Senior'].includes(row['Category'])) {
-				errors.push(`Row ${index + 2}: Invalid category. Must be Sub-Junior, Junior, or Senior`);
-			}
+            // Validate Category
+            if (row['Category'] && !['Super-Senior', 'Senior', 'Junior'].includes(row['Category'])) {
+                errors.push(`Row ${index + 2}: Invalid category. Must be Super-Senior, Senior, or Junior`);
+            }
 
 			// Validate Type
 			if (row['Type'] && !['solo', 'group', 'Single', 'Group'].includes(row['Type'])) {

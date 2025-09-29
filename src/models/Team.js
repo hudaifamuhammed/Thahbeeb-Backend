@@ -9,7 +9,7 @@ const teamSchema = new mongoose.Schema({
 	membersFileUrl: String,
 	participants: [{
 		name: { type: String, required: true },
-		category: { type: String, enum: ['Sub-Junior', 'Junior', 'Senior'], required: true },
+		category: { type: String, enum: ['Super-Senior', 'Senior', 'Junior'], required: true },
 		chestNumber: { type: String },
 	}]
 }, { timestamps: true });

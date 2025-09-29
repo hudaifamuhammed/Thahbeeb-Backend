@@ -3,7 +3,7 @@ import mongoose from 'mongoose';
 const scoreSchema = new mongoose.Schema({
 	teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
 	itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
-	category: { type: String, enum: ['Sub-Junior', 'Junior', 'Senior', 'Group'], default: 'Junior' },
+    category: { type: String, enum: ['Super-Senior', 'Senior', 'Junior', 'Group'], default: 'Junior' },
 	isGroupEvent: { type: Boolean, default: false },
 	positions: [{
 		teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },

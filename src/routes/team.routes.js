@@ -78,7 +78,7 @@ router.post('/:id/members-upload', requireAuth, requireAdmin, upload.single('fil
         return participant;
       })
       .filter((p) => {
-        const isValid = p.name && ['Sub-Junior','Junior','Senior'].includes(p.category);
+        const isValid = p.name && ['Super-Senior','Senior','Junior'].includes(p.category);
         console.log('Participant valid:', p, isValid);
         return isValid;
       });
