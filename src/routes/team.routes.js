@@ -65,13 +65,22 @@ router.post('/:id/members-upload', requireAuth, requireAdmin, upload.single('fil
     
     console.log('Detected column names:', { nameKey, categoryKey, chestKey });
     
+    // Normalize category and build participants
+    const normalizeCategory = (raw) => {
+      const v = (raw || '').toString().trim().toLowerCase().replace(/[\s_]+/g, '-');
+      if (v === 'super-senior' || v === 'supersenior') return 'Super-Senior';
+      if (v === 'senior') return 'Senior';
+      if (v === 'junior') return 'Junior';
+      return (raw || '').toString().trim();
+    };
+
     // Expect columns: Name, Category, Chest Number
     const participants = rows
       .map((r) => {
         // Use the detected column names
         const participant = {
           name: (r[nameKey] || '').toString().trim(),
-          category: (r[categoryKey] || '').toString().trim(),
+          category: normalizeCategory(r[categoryKey]),
           chestNumber: (r[chestKey] || '').toString().trim(),
         };
         console.log('Mapped participant:', participant);
