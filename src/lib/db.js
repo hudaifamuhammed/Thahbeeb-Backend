@@ -10,13 +10,10 @@ export async function connectDB() {
     // Recommended settings
     mongoose.set("strictQuery", true);
 
-    await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
-      autoIndex: true, // keep your option
-    });
+    await mongoose.connect(uri);
 
-    console.log("✅ MongoDB connected successfully");
+    const isLocal = uri.includes("localhost") || uri.includes("127.0.0.1");
+    console.log(`✅ MongoDB connected to [${isLocal ? 'LOCAL DATABASE (127.0.0.1)' : 'LIVE CLOUD (MongoDB Atlas)'}]`);
   } catch (error) {
     console.error("❌ MongoDB connection error:", error.message);
     process.exit(1); // stop the server if DB connection fails

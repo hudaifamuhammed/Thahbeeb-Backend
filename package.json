@@ -6,7 +6,8 @@
 	"scripts": {
 		"start": "node src/index.js",
 		"dev": "nodemon src/index.js",
-		"seed": "node src/scripts/seed.js"
+		"seed": "node src/scripts/seed.js",
+		"clone:live": "node src/scripts/clone-db.js"
 	},
 	"dependencies": {
 		"bcryptjs": "^2.4.3",
