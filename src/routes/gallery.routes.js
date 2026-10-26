@@ -27,11 +27,13 @@ router.post('/upload', requireAuth, requireAdmin, cloudUpload.single('media'), a
 		const stream = cloudinary.uploader.upload_stream({ resource_type: resourceType }, async (error, result) => {
 			if (error || !result) return res.status(500).json({ error: 'Cloudinary upload failed' });
 			// Save to DB
+			const year = req.body.year ? Number(req.body.year) : new Date().getFullYear();
 			const item = await GalleryItem.create({
 				url: result.secure_url,
 				type: req.body.type,
 				category: req.body.category,
 				caption: req.body.caption,
+				year
 			});
 			res.json(item);
 		});
@@ -42,13 +44,39 @@ router.post('/upload', requireAuth, requireAdmin, cloudUpload.single('media'), a
 	}
 });
 
-// Add this route to return all gallery items
-router.get('/', async (_req, res) => {
+// Return gallery items with optional year filtering
+router.get('/', async (req, res) => {
 	try {
-		const items = await GalleryItem.find().sort({ createdAt: -1 });
+		const filter = {};
+		if (req.query.year) {
+			filter.year = Number(req.query.year);
+		}
+		const items = await GalleryItem.find(filter).sort({ createdAt: -1 });
 		res.json(items);
 	} catch (error) {
 		res.status(500).json({ error: 'Failed to fetch gallery items' });
+	}
+});
+
+// Edit gallery item
+router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
+	try {
+		const payload = { ...req.body };
+		if (payload.year) payload.year = Number(payload.year);
+		const item = await GalleryItem.findByIdAndUpdate(req.params.id, payload, { new: true });
+		res.json(item);
+	} catch (error) {
+		res.status(500).json({ error: 'Failed to update gallery item' });
+	}
+});
+
+// Delete gallery item
+router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
+	try {
+		await GalleryItem.findByIdAndDelete(req.params.id);
+		res.json({ ok: true });
+	} catch (error) {
+		res.status(500).json({ error: 'Failed to delete gallery item' });
 	}
 });
 

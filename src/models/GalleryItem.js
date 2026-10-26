@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const galleryItemSchema = new mongoose.Schema({
 	caption: { type: String, required: true },
+	year: { type: Number, required: true, default: () => new Date().getFullYear(), index: true },
 	type: { type: String, enum: ['image', 'video'], default: 'image' },
 	category: { type: String, default: 'general' },
 	url: { type: String, required: true },

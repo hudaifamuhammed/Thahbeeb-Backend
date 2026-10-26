@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
 
 const scoreSchema = new mongoose.Schema({
+	year: { type: Number, required: true, default: () => new Date().getFullYear(), index: true },
 	teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
 	itemId: { type: mongoose.Schema.Types.ObjectId, ref: 'Item', required: true },
 	category: { type: String, enum: ['Super-Senior', 'Senior', 'Junior', 'General', 'Group'], default: 'Junior' },

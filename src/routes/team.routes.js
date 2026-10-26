@@ -3,6 +3,10 @@ import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import Team from '../models/Team.js';
+import Score from '../models/Score.js';
+import Item from '../models/Item.js';
+import News from '../models/News.js';
+import GalleryItem from '../models/GalleryItem.js';
 import { requireAuth, requireAdmin } from '../middleware/auth.js';
 import xlsx from 'xlsx';
 
@@ -15,13 +19,43 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-router.get('/', async (_req, res) => {
-	const teams = await Team.find().sort({ createdAt: -1 });
+router.get('/years', async (_req, res) => {
+	try {
+		const [teamYears, scoreYears, itemYears, newsYears, galleryYears] = await Promise.all([
+			Team.distinct('year').catch(() => []),
+			Score.distinct('year').catch(() => []),
+			Item.distinct('year').catch(() => []),
+			News.distinct('year').catch(() => []),
+			GalleryItem.distinct('year').catch(() => [])
+		]);
+		const currentYear = new Date().getFullYear();
+		const allYears = Array.from(new Set([
+			...teamYears, ...scoreYears, ...itemYears, ...newsYears, ...galleryYears, 2026, 2025, currentYear
+		]))
+			.filter(Boolean)
+			.map(Number)
+			.sort((a, b) => b - a);
+		res.json(allYears);
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
+});
+
+router.get('/', async (req, res) => {
+	const filter = {};
+	if (req.query.year) {
+		filter.year = Number(req.query.year);
+	}
+	const teams = await Team.find(filter).sort({ createdAt: -1 });
 	res.json(teams);
 });
 
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
-	const team = await Team.create(req.body);
+	const payload = { ...req.body };
+	if (payload.year) {
+		payload.year = Number(payload.year);
+	}
+	const team = await Team.create(payload);
 	res.status(201).json(team);
 });
 

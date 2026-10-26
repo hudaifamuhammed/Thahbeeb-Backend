@@ -7,8 +7,9 @@ import { requireAuth, requireAdmin } from '../middleware/auth.js';
 const router = Router();
 
 router.get('/', async (req, res) => {
-    const { category, published } = req.query;
+    const { category, published, year } = req.query;
     const filter = {};
+    if (year) filter.year = Number(year);
     if (category && category !== 'All') filter.category = category;
     if (typeof published !== 'undefined') {
         // Accept 'true'/'false' or boolean
@@ -45,6 +46,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
 
     const payload = {
         ...req.body,
+        year: req.body.year ? Number(req.body.year) : new Date().getFullYear(),
         positions,
         totalPoints
     };
@@ -116,13 +118,23 @@ router.delete('/:id', requireAuth, requireAdmin, async (req, res) => {
 });
 
 router.get('/totals/teams', async (req, res) => {
-    const { category } = req.query;
+    const { category, year } = req.query;
     const match = {};
+    if (year) match.year = Number(year);
     if (category && category !== 'All') match.category = category;
+    
+    // Initialize totals with all teams belonging to that year (so even 0-point teams show up)
+    const teamFilter = year ? { year: Number(year) } : {};
+    const teams = await Team.find(teamFilter);
+    const teamTotals = {};
+
+    teams.forEach(t => {
+        const idStr = t._id.toString();
+        teamTotals[idStr] = { teamId: idStr, teamName: t.name, totalPoints: 0, entries: 0 };
+    });
     
     // Calculate team totals from positions
     const scores = await Score.find(match);
-    const teamTotals = {};
     
     scores.forEach(score => {
         if (score.positions && score.positions.length > 0) {
@@ -130,7 +142,7 @@ router.get('/totals/teams', async (req, res) => {
                 if (position.teamId) {
                     const teamId = position.teamId.toString();
                     if (!teamTotals[teamId]) {
-                        teamTotals[teamId] = { teamId, totalPoints: 0, entries: 0 };
+                        teamTotals[teamId] = { teamId, teamName: 'Unknown Team', totalPoints: 0, entries: 0 };
                     }
                     teamTotals[teamId].totalPoints += position.points || 0;
                     teamTotals[teamId].entries += 1;
@@ -140,17 +152,17 @@ router.get('/totals/teams', async (req, res) => {
     });
     
     const totalsArray = Object.values(teamTotals).sort((a, b) => b.totalPoints - a.totalPoints);
-    const withNames = await Promise.all(totalsArray.map(async (t) => {
-        const team = await Team.findById(t.teamId);
-        return { teamId: t.teamId, teamName: team?.name || 'Team Not Found', totalPoints: t.totalPoints, entries: t.entries };
-    }));
-    res.json(withNames);
+    res.json(totalsArray);
 });
 
 // Separate totals for group events only
-router.get('/totals/teams-group', async (_req, res) => {
+router.get('/totals/teams-group', async (req, res) => {
+    const { year } = req.query;
+    const match = { isGroupEvent: true };
+    if (year) match.year = Number(year);
+
     const agg = await Score.aggregate([
-        { $match: { isGroupEvent: true } },
+        { $match: match },
         { $group: { _id: '$teamId', totalPoints: { $sum: '$totalPoints' }, entries: { $sum: 1 } } },
         { $sort: { totalPoints: -1 } }
     ]);

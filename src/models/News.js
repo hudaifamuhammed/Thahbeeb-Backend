@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const newsSchema = new mongoose.Schema({
 	title: { type: String, required: true },
+	year: { type: Number, required: true, default: () => new Date().getFullYear(), index: true },
 	content: { type: String, required: true },
 	category: { type: String, default: 'general' },
 	priority: { type: String, enum: ['low', 'normal', 'medium', 'high'], default: 'normal' },

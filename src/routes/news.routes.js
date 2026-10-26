@@ -29,13 +29,21 @@ const cloudUpload = multer({ storage: memoryStorage });
 
 const router = Router();
 
-router.get('/', async (_req, res) => {
-	const list = await News.find().sort({ createdAt: -1 });
+router.get('/', async (req, res) => {
+	const filter = {};
+	if (req.query.year) {
+		filter.year = Number(req.query.year);
+	}
+	const list = await News.find(filter).sort({ createdAt: -1 });
 	res.json(list);
 });
 
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
-	const doc = await News.create(req.body);
+	const payload = { ...req.body };
+	if (payload.year) {
+		payload.year = Number(payload.year);
+	}
+	const doc = await News.create(payload);
 	res.status(201).json(doc);
 });
 

@@ -2,6 +2,7 @@ import mongoose from 'mongoose';
 
 const itemSchema = new mongoose.Schema({
 	name: { type: String, required: true },
+	year: { type: Number, required: true, default: () => new Date().getFullYear(), index: true },
 	category: { type: String, required: true },
 	type: { type: String, enum: ['solo', 'group'], default: 'solo' },
 	stage: String,

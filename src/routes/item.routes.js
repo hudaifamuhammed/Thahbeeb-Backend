@@ -13,14 +13,51 @@ const upload = multer({
 	limits: { fileSize: 5 * 1024 * 1024 } // 5MB limit
 });
 
-router.get('/', async (_req, res) => {
-	const list = await Item.find().sort({ createdAt: -1 });
+router.get('/', async (req, res) => {
+	const filter = {};
+	if (req.query.year) {
+		filter.year = Number(req.query.year);
+	}
+	const list = await Item.find(filter).sort({ createdAt: -1 });
 	res.json(list);
 });
 
 router.post('/', requireAuth, requireAdmin, async (req, res) => {
-	const doc = await Item.create(req.body);
+	const payload = { ...req.body };
+	if (payload.year) {
+		payload.year = Number(payload.year);
+	}
+	const doc = await Item.create(payload);
 	res.status(201).json(doc);
+});
+
+// Copy items from a previous year to target year
+router.post('/copy-from-year', requireAuth, requireAdmin, async (req, res) => {
+	try {
+		const { fromYear, toYear } = req.body;
+		if (!fromYear || !toYear) {
+			return res.status(400).json({ error: 'fromYear and toYear are required' });
+		}
+		const existingItems = await Item.find({ year: Number(fromYear) });
+		if (!existingItems.length) {
+			return res.status(404).json({ error: `No items found for year ${fromYear}` });
+		}
+		const cloned = existingItems.map(item => ({
+			name: item.name,
+			category: item.category,
+			type: item.type,
+			stage: item.stage,
+			stageType: item.stageType,
+			description: item.description,
+			rules: item.rules,
+			prizes: item.prizes,
+			year: Number(toYear)
+		}));
+		const inserted = await Item.insertMany(cloned);
+		res.json({ message: `Copied ${inserted.length} items from ${fromYear} to ${toYear}`, count: inserted.length });
+	} catch (err) {
+		res.status(500).json({ error: err.message });
+	}
 });
 
 router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
@@ -140,6 +177,7 @@ router.post('/upload', requireAuth, requireAdmin, upload.single('file'), async (
 		}
 
 		// Create competition entries
+		const targetYear = req.body.year ? Number(req.body.year) : new Date().getFullYear();
 		const competitions = data.map(row => {
 			// Convert date format from DD-MM-YYYY to YYYY-MM-DD if needed
 			let dateValue = row['Date'];
@@ -163,7 +201,8 @@ router.post('/upload', requireAuth, requireAdmin, upload.single('file'), async (
 				time: row['Time'] || '', // Make time optional
 				description: row['Description'] || '',
 				rules: row['Rules'] || '',
-				prizes: row['Prizes'] || ''
+				prizes: row['Prizes'] || '',
+				year: targetYear
 			};
 		});
 
