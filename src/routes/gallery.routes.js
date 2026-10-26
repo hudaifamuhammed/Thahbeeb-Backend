@@ -44,6 +44,43 @@ router.post('/upload', requireAuth, requireAdmin, cloudUpload.single('media'), a
 	}
 });
 
+// Direct download endpoint - forces browser to download file to device local storage
+router.get('/download', async (req, res) => {
+	try {
+		const { url, filename } = req.query;
+		if (!url) return res.status(400).json({ error: 'Missing media URL' });
+
+		let baseName = (filename || 'Media')
+			.replace(/\.[^/.]+$/, "")
+			.replace(/[^\w\s-]/g, '')
+			.trim();
+		if (!/thahbeeb$/i.test(baseName)) {
+			baseName = `${baseName} - Thahbeeb`;
+		}
+
+		if (url.includes('cloudinary.com') && url.includes('/upload/')) {
+			const downloadUrl = url.replace('/upload/', `/upload/fl_attachment:${encodeURIComponent(baseName)}/`);
+			return res.redirect(downloadUrl);
+		}
+
+		const response = await fetch(url);
+		if (!response.ok) return res.status(response.status).send('Failed to fetch media');
+
+		const contentType = response.headers.get('content-type') || 'application/octet-stream';
+		const ext = url.split('.').pop()?.split('?')[0] || (contentType.includes('video') ? 'mp4' : 'jpg');
+		const finalFilename = `${baseName}.${ext}`;
+
+		res.setHeader('Content-Type', contentType);
+		res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(finalFilename)}"`);
+
+		const arrayBuffer = await response.arrayBuffer();
+		res.send(Buffer.from(arrayBuffer));
+	} catch (error) {
+		console.error('Error in media download proxy:', error);
+		res.status(500).json({ error: 'Failed to download file' });
+	}
+});
+
 // Return gallery items with optional year filtering
 router.get('/', async (req, res) => {
 	try {
