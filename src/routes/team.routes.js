@@ -19,8 +19,16 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-router.get('/years', async (_req, res) => {
+let cachedYears = null;
+let lastYearsFetch = 0;
+const CACHE_TTL_MS = 60 * 1000; // 60 seconds
+
+router.get('/years', async (req, res) => {
 	try {
+		const now = Date.now();
+		if (!req.query.refresh && cachedYears && (now - lastYearsFetch) < CACHE_TTL_MS) {
+			return res.json(cachedYears);
+		}
 		const [teamYears, scoreYears, itemYears, newsYears, galleryYears] = await Promise.all([
 			Team.distinct('year').catch(() => []),
 			Score.distinct('year').catch(() => []),
@@ -35,6 +43,8 @@ router.get('/years', async (_req, res) => {
 			.filter(Boolean)
 			.map(Number)
 			.sort((a, b) => b - a);
+		cachedYears = allYears;
+		lastYearsFetch = now;
 		res.json(allYears);
 	} catch (err) {
 		res.status(500).json({ error: err.message });

@@ -34,7 +34,11 @@ router.get('/', async (req, res) => {
 	if (req.query.year) {
 		filter.year = Number(req.query.year);
 	}
-	const list = await News.find(filter).sort({ createdAt: -1 });
+	let query = News.find(filter).sort({ createdAt: -1 });
+	if (req.query.limit) {
+		query = query.limit(Number(req.query.limit));
+	}
+	const list = await query;
 	res.json(list);
 });
 

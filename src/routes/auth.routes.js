@@ -3,7 +3,7 @@ import { Router } from 'express';
 const router = Router();
 
 const ADMIN_EMAIL = process.env.SEED_ADMIN_EMAIL || 'thahbeeb@nsu.com';
-const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Artsfest@2025';
+const ADMIN_PASSWORD = process.env.SEED_ADMIN_PASSWORD || 'Thahbeebrtsfest@2026';
 
 router.post('/login', async (req, res) => {
 	const { email, password } = req.body || {};
