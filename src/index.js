@@ -21,9 +21,33 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ===== Middlewares =====
+const defaultAllowedOrigins = [
+  'https://thahbeeb.najath.org',
+  'https://www.thahbeeb.najath.org',
+  'https://thahbeeb-frontend.onrender.com',
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'http://localhost:3000',
+];
+
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(',') || '*',
+    origin: (origin, callback) => {
+      if (!origin) return callback(null, true);
+      const configured = process.env.CORS_ORIGIN
+        ? process.env.CORS_ORIGIN.split(',').map((o) => o.trim()).filter(Boolean)
+        : [];
+      const allowed = [...defaultAllowedOrigins, ...configured];
+      if (
+        allowed.includes('*') ||
+        allowed.includes(origin) ||
+        origin.endsWith('.najath.org') ||
+        origin.endsWith('.onrender.com')
+      ) {
+        return callback(null, true);
+      }
+      return callback(null, true);
+    },
     credentials: true,
   })
 );
