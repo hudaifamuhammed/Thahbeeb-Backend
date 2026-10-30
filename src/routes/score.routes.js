@@ -10,7 +10,14 @@ router.get('/', async (req, res) => {
     const { category, published, year } = req.query;
     const filter = {};
     if (year) filter.year = Number(year);
-    if (category && category !== 'All') filter.category = category;
+    if (category && category !== 'All') {
+        if (category === 'Group') {
+            filter.$or = [{ isGroupEvent: true }, { category: 'Group' }];
+        } else {
+            filter.category = category;
+            filter.isGroupEvent = { $ne: true };
+        }
+    }
     if (typeof published !== 'undefined') {
         // Accept 'true'/'false' or boolean
         const publishedBool = published === true || published === 'true';
@@ -29,6 +36,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
         if (v.includes('general')) return 'General';
         if (v.includes('senior')) return 'Senior';
         if (v.includes('junior')) return 'Junior';
+        if (v.includes('group')) return 'Group';
         return raw;
     };
 
@@ -37,7 +45,7 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
         .filter(p => p && p.teamId && mongoose.Types.ObjectId.isValid(p.teamId))
         .map(p => ({
             teamId: p.teamId,
-            participantName: p.participantName,
+            participantName: p.participantName || '',
             position: Number(p.position) || 0,
             points: Number(p.points) || 0
         }));
@@ -50,10 +58,12 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
         positions,
         totalPoints
     };
-    if (!payload.isGroupEvent) {
-        payload.category = normalizeCategory(payload.category);
+    if (payload.isGroupEvent || payload.category === 'Group') {
+        payload.isGroupEvent = true;
+        payload.category = 'Group';
     } else {
-        payload.category = undefined;
+        payload.isGroupEvent = false;
+        payload.category = normalizeCategory(payload.category);
     }
 
     const doc = await Score.create(payload);
@@ -68,6 +78,7 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
         if (v.includes('general')) return 'General';
         if (v.includes('senior')) return 'Senior';
         if (v.includes('junior')) return 'Junior';
+        if (v.includes('group')) return 'Group';
         return raw;
     };
 
@@ -76,7 +87,7 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
         .filter(p => p && p.teamId && mongoose.Types.ObjectId.isValid(p.teamId))
         .map(p => ({
             teamId: p.teamId,
-            participantName: p.participantName,
+            participantName: p.participantName || '',
             position: Number(p.position) || 0,
             points: Number(p.points) || 0
         }));
@@ -87,10 +98,12 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
         positions,
         totalPoints
     };
-    if (!update.isGroupEvent) {
-        update.category = normalizeCategory(update.category);
+    if (update.isGroupEvent || update.category === 'Group') {
+        update.isGroupEvent = true;
+        update.category = 'Group';
     } else {
-        update.category = undefined;
+        update.isGroupEvent = false;
+        update.category = normalizeCategory(update.category);
     }
 
     const doc = await Score.findByIdAndUpdate(req.params.id, update, { new: true });
@@ -121,7 +134,14 @@ router.get('/totals/teams', async (req, res) => {
     const { category, year } = req.query;
     const match = {};
     if (year) match.year = Number(year);
-    if (category && category !== 'All') match.category = category;
+    if (category && category !== 'All') {
+        if (category === 'Group') {
+            match.$or = [{ isGroupEvent: true }, { category: 'Group' }];
+        } else {
+            match.category = category;
+            match.isGroupEvent = { $ne: true };
+        }
+    }
     
     // Initialize totals with all teams belonging to that year (so even 0-point teams show up)
     const teamFilter = year ? { year: Number(year) } : {};
