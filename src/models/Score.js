@@ -9,6 +9,7 @@ const scoreSchema = new mongoose.Schema({
 	positions: [{
 		teamId: { type: mongoose.Schema.Types.ObjectId, ref: 'Team' },
 		participantName: String,
+		participantNames: [String],
 		position: { type: Number, required: true },
 		points: { type: Number, default: 0 }
 	}],

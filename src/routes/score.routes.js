@@ -43,12 +43,19 @@ router.post('/', requireAuth, requireAdmin, async (req, res) => {
     const rawPositions = Array.isArray(req.body.positions) ? req.body.positions : [];
     const positions = rawPositions
         .filter(p => p && p.teamId && mongoose.Types.ObjectId.isValid(p.teamId))
-        .map(p => ({
-            teamId: p.teamId,
-            participantName: p.participantName || '',
-            position: Number(p.position) || 0,
-            points: Number(p.points) || 0
-        }));
+        .map(p => {
+            const pNames = Array.isArray(p.participantNames) && p.participantNames.length > 0
+                ? p.participantNames.filter(Boolean)
+                : (p.participantName ? p.participantName.split(',').map(s => s.trim()).filter(Boolean) : []);
+            const pNameStr = pNames.length > 0 ? pNames.join(', ') : (p.participantName || '');
+            return {
+                teamId: p.teamId,
+                participantName: pNameStr,
+                participantNames: pNames,
+                position: Number(p.position) || 0,
+                points: Number(p.points) || 0
+            };
+        });
 
     const totalPoints = positions.reduce((sum, pos) => sum + (Number(pos.points) || 0), 0);
 
@@ -85,12 +92,19 @@ router.put('/:id', requireAuth, requireAdmin, async (req, res) => {
     const rawPositions = Array.isArray(req.body.positions) ? req.body.positions : [];
     const positions = rawPositions
         .filter(p => p && p.teamId && mongoose.Types.ObjectId.isValid(p.teamId))
-        .map(p => ({
-            teamId: p.teamId,
-            participantName: p.participantName || '',
-            position: Number(p.position) || 0,
-            points: Number(p.points) || 0
-        }));
+        .map(p => {
+            const pNames = Array.isArray(p.participantNames) && p.participantNames.length > 0
+                ? p.participantNames.filter(Boolean)
+                : (p.participantName ? p.participantName.split(',').map(s => s.trim()).filter(Boolean) : []);
+            const pNameStr = pNames.length > 0 ? pNames.join(', ') : (p.participantName || '');
+            return {
+                teamId: p.teamId,
+                participantName: pNameStr,
+                participantNames: pNames,
+                position: Number(p.position) || 0,
+                points: Number(p.points) || 0
+            };
+        });
     const totalPoints = positions.reduce((sum, pos) => sum + (Number(pos.points) || 0), 0);
 
     const update = {
